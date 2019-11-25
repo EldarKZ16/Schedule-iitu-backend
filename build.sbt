@@ -13,6 +13,7 @@ lazy val akkaHttpVersion         = "10.1.10"
 lazy val akkaVersion             = "2.5.26"
 lazy val mongoVersion            = "0.18.6"
 lazy val json4sVersion           = "3.6.7"
+lazy val httpJson4sVersion       = "1.29.1"
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka"      %% "akka-http"                         % akkaHttpVersion,
@@ -23,6 +24,6 @@ libraryDependencies ++= Seq(
   "org.json4s"             %% "json4s-native"                     % json4sVersion,
   "org.json4s"             %% "json4s-jackson"                    % json4sVersion,
   "ch.qos.logback"         %  "logback-classic"                   % logbackVersion,
-  "de.heikoseeberger" %% "akka-http-json4s" % "1.29.1"
+  "de.heikoseeberger"      %% "akka-http-json4s"                  % httpJson4sVersion
 )
 
