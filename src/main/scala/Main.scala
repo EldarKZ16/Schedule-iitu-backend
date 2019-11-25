@@ -23,11 +23,13 @@ object Main extends App {
 
   // MongoDB configuration
   val mongoHost = config.getString("mongo.host")
-  val authMode = config.getString("mongo.authMode")
   val database = config.getString("mongo.database")
   val collection = config.getString("mongo.collection")
+  val user = config.getString("mongo.user")
+  val password = config.getString("mongo.password")
+  val dbName = config.getString("mongo.dbName")
 
-  val mongoUri = s"mongodb://$mongoHost/mydb?authenticationMechanism=$authMode"
+  val mongoUri = s"mongodb://$user:$password@$mongoHost/$dbName"
   val driver = MongoDriver()
   val parsedURI = MongoConnection.parseURI(mongoUri)
   val connection = parsedURI.flatMap(driver.connection(_, strictUri = false))

@@ -1,1 +1,1 @@
-web: target/universal/stage/bin/schedulebackend
+web: target/universal/stage/bin/schedulebackend -DMONGO_HOST=ds249717.mlab.com:49717 -DMONGO_DBNAME=heroku_20wb39nk -DMONGO_DATABASE=iitu -DMONGO_COLLECTION=schedule -DMONGO_USER=eldar -DMONGO_PASSWORD=SpecialForHeroku1
