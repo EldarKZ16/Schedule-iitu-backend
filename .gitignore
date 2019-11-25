@@ -1,0 +1,11 @@
+target/
+boot/
+lib_managed/
+src_managed/
+project/plugins/project/
+
+
+.idea
+
+#MacOS files
+.DS_Store
