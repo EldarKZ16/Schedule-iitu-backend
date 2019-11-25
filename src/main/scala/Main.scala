@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory
 import reactivemongo.api.collections.bson.BSONCollection
 import reactivemongo.api.{DefaultDB, MongoConnection, MongoDriver}
 import routing.RestApi
-import service.MongoDBManager
+import service.{MongoDBManager, Scheduler}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.{Duration, _}
@@ -39,6 +39,7 @@ object Main extends App {
   def bsonCollection: Future[BSONCollection] = mongoDatabase.map(_.collection(s"$collection"))
 
   val mongoDBManager = system.actorOf(Props(new MongoDBManager(bsonCollection)))
+  val scheduler = system.actorOf(Scheduler.props(system))
 
   val timeout: Timeout = Timeout.durationToTimeout(config.getInt("http.request-timeout").seconds)
   val api = new RestApi(timeout, mongoDBManager, bsonCollection)
