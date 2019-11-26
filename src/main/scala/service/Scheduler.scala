@@ -22,7 +22,7 @@ class Scheduler(system: ActorSystem) extends Actor with ActorLogging {
 
   val SERVICE_URL = "https://schedule-backend-iitu.herokuapp.com/healthcheck"
 
-  system.scheduler.schedule(Duration.Zero, 30.minutes, self, Ping)
+  system.scheduler.schedule(Duration.Zero, 15.minutes, self, Ping)
 
   override def receive: Receive = {
     case Ping =>
