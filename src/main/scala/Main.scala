@@ -25,14 +25,13 @@ object Main extends App {
   val mongoHost = config.getString("mongo.host")
   val database = config.getString("mongo.database")
   val collection = config.getString("mongo.collection")
-  val authMode = config.getString("mongo.authMode")
   val user = config.getString("mongo.user")
   val password = config.getString("mongo.password")
 
-  val mongoUri = s"mongodb://$user:$password@$mongoHost/$database?authenticationMechanism=$authMode"
+  val mongoUri = s"mongodb://$user:$password@$mongoHost/$database"
   val driver = MongoDriver()
   val parsedURI = MongoConnection.parseURI(mongoUri)
-  val connection = parsedURI.flatMap(driver.connection(_, strictUri = false))
+  val connection = parsedURI.flatMap(driver.connection(_, strictUri = true))
   val futureConnection = Future.fromTry(connection)
 
   def mongoDatabase: Future[DefaultDB] = futureConnection.flatMap(_.database(s"$database"))
