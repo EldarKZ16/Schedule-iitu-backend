@@ -21,6 +21,11 @@ object Main extends App {
   implicit val materializer: ActorMaterializer = ActorMaterializer()
   val log = LoggerFactory.getLogger(this.getClass)
 
+  val host = config.getString("http.host")
+  val port = config.getInt("http.port")
+  val hostname = config.getString("http.hostname")
+  val timeout: Timeout = Timeout.durationToTimeout(config.getInt("http.request-timeout").seconds)
+
   // MongoDB configuration
   val mongoHost = config.getString("mongo.host")
   val database = config.getString("mongo.database")
@@ -38,9 +43,8 @@ object Main extends App {
   def bsonCollection: Future[BSONCollection] = mongoDatabase.map(_.collection(s"$collection"))
 
   val mongoDBManager = system.actorOf(Props(new MongoDBManager(bsonCollection)))
-  val scheduler = system.actorOf(Scheduler.props(system))
+  val scheduler = system.actorOf(Scheduler.props(system, hostname))
 
-  val timeout: Timeout = Timeout.durationToTimeout(config.getInt("http.request-timeout").seconds)
   val api = new RestApi(timeout, mongoDBManager, bsonCollection)
 
   val routes = concat(
@@ -52,8 +56,6 @@ object Main extends App {
     api.routes
   )
 
-  val host = config.getString("http.host")
-  val port = config.getInt("http.port")
   Http().bindAndHandle(routes, host, port)
 
   log.info(s"Schedule server API server running at $host:$port")

@@ -9,7 +9,7 @@ version := "0.1"
 scalaVersion := "2.12.8"
 
 lazy val logbackVersion          = "1.2.3"
-lazy val akkaHttpVersion         = "10.1.9"
+lazy val akkaHttpVersion         = "10.1.10"
 lazy val akkaVersion             = "2.5.26"
 lazy val mongoVersion            = "0.18.6"
 lazy val json4sVersion           = "3.6.7"

@@ -10,17 +10,17 @@ object Scheduler {
 
   case object Ping
 
-  def props(system: ActorSystem): Props = Props(new Scheduler(system))
+  def props(system: ActorSystem, hostname: String): Props = Props(new Scheduler(system, hostname))
 
 }
 
-class Scheduler(system: ActorSystem) extends Actor with ActorLogging {
+class Scheduler(system: ActorSystem, hostname: String) extends Actor with ActorLogging {
   import Scheduler._
   import system.dispatcher
 
   val http: HttpExt = Http(context.system)
 
-  val SERVICE_URL = "https://schedule-backend-iitu.herokuapp.com/healthcheck"
+  val SERVICE_URL = s"$hostname/healthcheck"
 
   system.scheduler.schedule(Duration.Zero, 15.minutes, self, Ping)
 
