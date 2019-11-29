@@ -1,8 +1,8 @@
 package service
 
 import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
-import akka.http.scaladsl.{Http, HttpExt}
 import akka.http.scaladsl.model.HttpRequest
+import akka.http.scaladsl.{Http, HttpExt}
 
 import scala.concurrent.duration._
 

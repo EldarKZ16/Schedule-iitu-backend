@@ -5,7 +5,6 @@ import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import com.typesafe.config.{Config, ConfigFactory}
 import org.slf4j.LoggerFactory
-import reactivemongo.api.collections.bson.BSONCollection
 import reactivemongo.api.{DefaultDB, MongoConnection, MongoDriver}
 import routing.RestApi
 import service.{MongoDBManager, Scheduler}
@@ -29,23 +28,21 @@ object Main extends App {
   // MongoDB configuration
   val mongoHost = config.getString("mongo.host")
   val database = config.getString("mongo.database")
-  val collection = config.getString("mongo.collection")
   val user = config.getString("mongo.user")
   val password = config.getString("mongo.password")
 
-  val mongoUri = s"mongodb://$user:$password@$mongoHost/$database"
+  val mongoUri = s"mongodb://$mongoHost/$database"
   val driver = MongoDriver()
   val parsedURI = MongoConnection.parseURI(mongoUri)
   val connection = parsedURI.flatMap(driver.connection(_, strictUri = true))
   val futureConnection = Future.fromTry(connection)
 
   def mongoDatabase: Future[DefaultDB] = futureConnection.flatMap(_.database(s"$database"))
-  def bsonCollection: Future[BSONCollection] = mongoDatabase.map(_.collection(s"$collection"))
 
-  val mongoDBManager = system.actorOf(Props(new MongoDBManager(bsonCollection)))
+  val mongoDBManager = system.actorOf(Props[MongoDBManager])
   val scheduler = system.actorOf(Scheduler.props(system, hostname))
 
-  val api = new RestApi(timeout, mongoDBManager, bsonCollection)
+  val api = new RestApi(timeout, mongoDBManager, mongoDatabase)
 
   val routes = concat(
     path("healthcheck") {

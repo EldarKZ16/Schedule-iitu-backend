@@ -1,7 +1,7 @@
 package routing
 
 import akka.actor.ActorRef
-import akka.http.scaladsl.model.{StatusCode, StatusCodes}
+import akka.http.scaladsl.model.StatusCodes
 import akka.pattern.ask
 import akka.util.Timeout
 import entities.Schedule

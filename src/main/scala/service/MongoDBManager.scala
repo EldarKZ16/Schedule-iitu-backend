@@ -1,38 +1,39 @@
 package service
 
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.{Actor, ActorLogging}
 import akka.pattern.pipe
 import reactivemongo.api.collections.bson.BSONCollection
 import reactivemongo.bson.{BSONDocument, document}
-import serialization.{Json4s, ScheduleBSON}
+import serialization.{BSONSerialization, Json4sSerialization}
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
 object MongoDBManager {
 
-  case class AddFreeRoom(day: String, timetable: String, room: String)
+  trait MongoRequest {
+    val bsonCollection: Future[BSONCollection]
+  }
 
-  case class DeleteDay(day: String)
+  final case class AddFreeRoom(day: String, timetable: String, room: String, bsonCollection: Future[BSONCollection]) extends MongoRequest
 
-  case class GetFreeRooms(day: String)
+  final case class DeleteDay(day: String, bsonCollection: Future[BSONCollection]) extends MongoRequest
 
-  def props(bsonCollection: Future[BSONCollection]) =
-    Props(new MongoDBManager(bsonCollection))
+  final case class GetFreeRooms(day: String, bsonCollection: Future[BSONCollection])
 
 }
 
-class MongoDBManager(bsonCollection: Future[BSONCollection])
+class MongoDBManager
   extends Actor
     with ActorLogging
-    with Json4s
-    with ScheduleBSON {
+    with Json4sSerialization
+    with BSONSerialization {
 
   import MongoDBManager._
   import context.dispatcher
 
   override def receive: Receive = {
-    case AddFreeRoom(day, timetable, room) =>
+    case AddFreeRoom(day, timetable, room, bsonCollection) =>
       val selector = BSONDocument("day" -> day)
 
       val modifier = BSONDocument(
@@ -42,13 +43,14 @@ class MongoDBManager(bsonCollection: Future[BSONCollection])
 
       val updateResult =
         bsonCollection
-          .flatMap(_.update
-          .one(
-            q = selector,
-            u = modifier,
-            upsert = true,
-            multi = false)
-        )
+          .flatMap(
+            _.update
+              .one(
+                q = selector,
+                u = modifier,
+                upsert = true,
+                multi = false)
+          )
 
       updateResult onComplete {
         case Success(_) =>
@@ -56,19 +58,19 @@ class MongoDBManager(bsonCollection: Future[BSONCollection])
           log.warning(s"Failed to update free room: $exception")
       }
 
-    case DeleteDay(day) =>
+    case DeleteDay(day, bsonCollection) =>
       val selector = BSONDocument("day" -> day)
 
-      val futureRemove1 = bsonCollection.flatMap(_.delete.one(selector))
+      val futureRemove = bsonCollection.flatMap(_.delete.one(selector))
 
-      futureRemove1.onComplete {
+      futureRemove.onComplete {
         case Failure(e) =>
           log.warning(s"Failed: $e")
         case Success(_) =>
           log.info(s"Successfully removed day: $day")
       }
 
-    case GetFreeRooms(day) =>
+    case GetFreeRooms(day, bsonCollection) =>
       bsonCollection.flatMap(_.find(document("day" -> day), None).one).pipeTo(sender())
   }
 }

@@ -6,27 +6,32 @@ import akka.http.scaladsl.{Http, HttpExt}
 import akka.pattern.pipe
 import akka.stream.{ActorMaterializer, ActorMaterializerSettings}
 import akka.util.ByteString
+import com.typesafe.config.Config
 import entities.Room
 import org.json4s
 import org.json4s.native.JsonMethods.parse
 import reactivemongo.api.collections.bson.BSONCollection
-import serialization.Json4s
+import serialization.Json4sSerialization
 
 import scala.concurrent.Future
 
 object ScheduleRetriever {
 
-  def props(bundleId: String, collection: Future[BSONCollection], mongoDBManager: ActorRef): Props =
-    Props(new ScheduleRetriever(bundleId, collection, mongoDBManager))
+  def props(bundleId: String,
+            bsonCollection: Future[BSONCollection],
+            mongoDBManager: ActorRef)
+           (implicit config: Config): Props =
+    Props(new ScheduleRetriever(bundleId, bsonCollection, mongoDBManager))
 
 }
 
 class ScheduleRetriever(bundleId: String,
-                        collection: Future[BSONCollection],
+                        bsonCollection: Future[BSONCollection],
                         mongoDBManager: ActorRef)
+                       (implicit config: Config)
   extends Actor
     with ActorLogging
-    with Json4s {
+    with Json4sSerialization {
 
   final val SCHEDULE_REST_TIMETABLE_ROOM_URL = "http://schedule.iitu.kz/rest/user/get_timetable_room.php?bundle_id="
   final val DAYS = for (day <- 1 to 5) yield day.toString
@@ -56,7 +61,7 @@ class ScheduleRetriever(bundleId: String,
                 val result: Option[json4s.JValue] = parsedScheduleTime.toOption
                 result match {
                   case None =>
-                    mongoDBManager ! MongoDBManager.AddFreeRoom(day, time, room)
+                    mongoDBManager ! MongoDBManager.AddFreeRoom(day, time, room, bsonCollection)
                   case Some(_) =>
                 }
               }

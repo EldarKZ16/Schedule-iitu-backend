@@ -2,10 +2,9 @@ package routing
 
 import akka.http.scaladsl.server.Directives.{pathPrefix, _}
 import akka.http.scaladsl.server._
-import de.heikoseeberger.akkahttpjson4s.Json4sSupport
-import serialization.Json4s
+import serialization.Json4sSerialization
 
-trait Routes extends RoutesHelper with Json4s {
+trait Routes extends RoutesHelper with Json4sSerialization {
   val service = "api"
   val version = "v1"
 
