@@ -44,7 +44,7 @@ class ScheduleRetriever(bundleId: String,
   val http: HttpExt = Http(context.system)
 
   override def preStart(): Unit = {
-    http.singleRequest(HttpRequest(uri = s"$SCHEDULE_REST_TIMETABLE_ROOM_URL?bundleId=$bundleId"))
+    http.singleRequest(HttpRequest(uri = s"$SCHEDULE_REST_TIMETABLE_ROOM_URL?bundle_id=$bundleId"))
       .pipeTo(self)
   }
 
