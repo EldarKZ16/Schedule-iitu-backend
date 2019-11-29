@@ -33,8 +33,9 @@ class ScheduleRetriever(bundleId: String,
     with ActorLogging
     with Json4sSerialization {
 
-  final val SCHEDULE_REST_TIMETABLE_ROOM_URL = "http://schedule.iitu.kz/rest/user/get_timetable_room.php?bundle_id="
-  final val DAYS = for (day <- 1 to 5) yield day.toString
+  final val SCHEDULE_REST_TIMETABLE_ROOM_URL = config.getString("schedule.room-url")
+
+  final val DAYS = for (day <- 1 to 6) yield day.toString
   final val TIMES = for (time <- 1 to 13) yield time.toString
 
   import context.dispatcher
@@ -43,7 +44,7 @@ class ScheduleRetriever(bundleId: String,
   val http: HttpExt = Http(context.system)
 
   override def preStart(): Unit = {
-    http.singleRequest(HttpRequest(uri = s"$SCHEDULE_REST_TIMETABLE_ROOM_URL$bundleId"))
+    http.singleRequest(HttpRequest(uri = s"$SCHEDULE_REST_TIMETABLE_ROOM_URL?bundleId=$bundleId"))
       .pipeTo(self)
   }
 
