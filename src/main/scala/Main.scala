@@ -31,7 +31,7 @@ object Main extends App {
   val user = config.getString("mongo.user")
   val password = config.getString("mongo.password")
 
-  val mongoUri = s"mongodb://$mongoHost/$database"
+  val mongoUri = s"mongodb://$user:$password@$mongoHost/$database"
   val driver = MongoDriver()
   val parsedURI = MongoConnection.parseURI(mongoUri)
   val connection = parsedURI.flatMap(driver.connection(_, strictUri = true))
