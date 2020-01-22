@@ -1,19 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration scan="true">
-
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <withJansi>true</withJansi>
         <encoder>
-            <pattern>[%highlight(%-5level)] [%date{dd/MM/yyyy HH:mm:ss}] [%green(%X{akkaSource})] %cyan(%logger{1}) | %msg%n</pattern>
+            <pattern>[%highlight(%-5level)] [%date{dd/MM/yyyy HH:mm:ss.SSS}] [%green(%X{akkaSource})] %cyan(%logger{1}) - %msg%n</pattern>
         </encoder>
     </appender>
-
     <logger name="reactivemongo" level="WARN" />
     <logger name="akka.http.impl.engine.client.PoolGateway" level="WARN"/>
     <logger name="akka.actor.ActorSystemImpl" level="OFF"/>
-
     <root level="INFO">
         <appender-ref ref="STDOUT"/>
     </root>
-
 </configuration>

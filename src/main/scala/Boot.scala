@@ -1,29 +1,32 @@
-import akka.actor.{ActorSystem, Props}
+import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Directives._
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import com.typesafe.config.{Config, ConfigFactory}
-import org.slf4j.LoggerFactory
+import org.slf4j.{Logger, LoggerFactory}
 import reactivemongo.api.{DefaultDB, MongoConnection, MongoDriver}
-import routing.RestApi
-import service.{MongoDBManager, Scheduler}
+import routing.ScheduleRoutes
+import service.actors.{EmptyCabinetUpdater, Scheduler}
+import service.{Repository, ScheduleRepository}
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.{Duration, _}
+import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
+import scala.util.Try
 
-object Main extends App {
+object Boot extends App with ScheduleRoutes {
 
-  implicit val config: Config = ConfigFactory.load()
+  val config: Config = ConfigFactory.load()
+  val log: Logger = LoggerFactory.getLogger(this.getClass)
+
   implicit val system: ActorSystem = ActorSystem()
   implicit val materializer: ActorMaterializer = ActorMaterializer()
-  val log = LoggerFactory.getLogger(this.getClass)
 
-  val host = config.getString("http.host")
-  val port = config.getInt("http.port")
-  val hostname = config.getString("http.hostname")
-  val timeout: Timeout = Timeout.durationToTimeout(config.getInt("http.request-timeout").seconds)
+  val host = config.getString("api.host")
+  val port = config.getInt("api.port")
+  val hostname = config.getString("api.hostname")
+  val timeout = Timeout.durationToTimeout(config.getInt("api.request-timeout").seconds)
 
   // MongoDB configuration
   val mongoHost = config.getString("mongo.host")
@@ -37,20 +40,25 @@ object Main extends App {
   val connection = parsedURI.flatMap(driver.connection(_, strictUri = true))
   val futureConnection = Future.fromTry(connection)
 
-  def mongoDatabase: Future[DefaultDB] = futureConnection.flatMap(_.database(s"$database"))
+  val mongoDatabaseFuture: Future[DefaultDB] = futureConnection.flatMap(_.database(s"$database"))
+  val mongoDatabase: DefaultDB = Await.result(mongoDatabaseFuture, 10.seconds)
 
-  val mongoDBManager = system.actorOf(Props[MongoDBManager])
-  val scheduler = system.actorOf(Scheduler.props(system, hostname))
+  log.info("Start schedulers...")
+  val scheduler = system.actorOf(Scheduler.props(hostname))
+  val scheduleAutoUpdater = system.actorOf(EmptyCabinetUpdater.props(mongoDatabase))
 
-  val api = new RestApi(timeout, mongoDBManager, mongoDatabase)
+  override def repository: Repository = ScheduleRepository(system, mongoDatabase)
 
+  val apiVersion = Try(config.getString("api.version")).getOrElse("v1")
   val routes = concat(
     path("healthcheck") {
       get {
         complete("OK")
       }
     },
-    api.routes
+    pathPrefix("api" / apiVersion) {
+      scheduleRoutes
+    }
   )
 
   Http().bindAndHandle(routes, host, port)

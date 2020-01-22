@@ -1,47 +1,40 @@
-package service
+package service.actors
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.actor.{Actor, ActorLogging, Props}
 import akka.http.scaladsl.model.{HttpRequest, HttpResponse, StatusCodes}
 import akka.http.scaladsl.{Http, HttpExt}
 import akka.pattern.pipe
 import akka.stream.{ActorMaterializer, ActorMaterializerSettings}
 import akka.util.ByteString
-import com.typesafe.config.Config
-import entities.Room
+import entities.http.Room
 import org.json4s
 import org.json4s.native.JsonMethods.parse
-import reactivemongo.api.collections.bson.BSONCollection
+import reactivemongo.api.DefaultDB
 import serialization.Json4sSerialization
+import service.dao.EmptyCabinetsDAO
+import service.dao.mongo.EmptyCabinetsDAOImpl
 
-import scala.concurrent.Future
-
-object ScheduleRetriever {
+object EmptyCabinetRetriever {
 
   def props(bundleId: String,
-            bsonCollection: Future[BSONCollection],
-            mongoDBManager: ActorRef)
-           (implicit config: Config): Props =
-    Props(new ScheduleRetriever(bundleId, bsonCollection, mongoDBManager))
+            mongoDatabase: DefaultDB): Props =
+    Props(new EmptyCabinetRetriever(bundleId, mongoDatabase))
 
 }
 
-class ScheduleRetriever(bundleId: String,
-                        bsonCollection: Future[BSONCollection],
-                        mongoDBManager: ActorRef)
-                       (implicit config: Config)
+class EmptyCabinetRetriever(bundleId: String,
+                            mongoDatabase: DefaultDB)
   extends Actor
     with ActorLogging
     with Json4sSerialization {
 
-  final val SCHEDULE_REST_TIMETABLE_ROOM_URL = config.getString("schedule.room-url")
-
-  final val DAYS = for (day <- 1 to 6) yield day.toString
-  final val TIMES = for (time <- 1 to 13) yield time.toString
-
   import context.dispatcher
+  import utils.Utils._
 
   final implicit val materializer: ActorMaterializer = ActorMaterializer(ActorMaterializerSettings(context.system))
   val http: HttpExt = Http(context.system)
+
+  private val emptyCabinetsDAO: EmptyCabinetsDAO = new EmptyCabinetsDAOImpl(mongoDatabase)
 
   override def preStart(): Unit = {
     http.singleRequest(HttpRequest(uri = s"$SCHEDULE_REST_TIMETABLE_ROOM_URL?bundle_id=$bundleId"))
@@ -49,26 +42,27 @@ class ScheduleRetriever(bundleId: String,
   }
 
   override def receive: Receive = {
-    case HttpResponse(StatusCodes.OK, _, entity, _) =>
+    case resp @ HttpResponse(StatusCodes.OK, _, entity, _) =>
       entity.dataBytes.runFold(ByteString(""))(_ ++ _).foreach { response =>
-        val roomNumber = (parse(response.utf8String) \ "bundles" \ bundleId \ "0").extract[Room].name_en
+        val cabinetNumber = (parse(response.utf8String) \ "bundles" \ bundleId \ "0").extract[Room].name_en
 
-        roomNumber match {
-          case Some(room) =>
-            log.info(s"Room is $room")
+        cabinetNumber match {
+          case Some(cabinet) =>
+            log.info(s"Cabinet is $cabinet")
             DAYS.foreach { day =>
               TIMES.foreach { time =>
                 val parsedScheduleTime = parse(response.utf8String) \ "timetable" \ day \ time
                 val result: Option[json4s.JValue] = parsedScheduleTime.toOption
                 result match {
                   case None =>
-                    mongoDBManager ! MongoDBManager.AddFreeRoom(day, time, room, bsonCollection)
+                    emptyCabinetsDAO.add(day, time, cabinet)
                   case Some(_) =>
                 }
               }
             }
           case None =>
-            log.info("Room doesn't exist")
+            log.info("Cabinet doesn't exist")
+            resp.discardEntityBytes()
         }
       }
 
@@ -77,7 +71,6 @@ class ScheduleRetriever(bundleId: String,
       response.discardEntityBytes()
 
     case msg =>
-      log.warning(s"Received unexpected message: Room: $bundleId, $msg")
-
+      log.warning(s"Received unexpected message. Room: $bundleId, message: $msg")
   }
 }
