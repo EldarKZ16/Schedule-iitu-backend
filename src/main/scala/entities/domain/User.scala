@@ -1,3 +1,3 @@
 package entities.domain
 
-case class User(id: Int, groupId: String)
+case class User(id: Int, groupId: Int)

@@ -65,6 +65,6 @@ class ScheduleRepository private(system: ActorSystem,
   }
 
   override def getUser(userId: Int): Future[Option[User]] = {
-    userDAO.get(userId)
+    userDAO.get(userId).map(_.orElse(Some(User(userId, -1))))
   }
 }
