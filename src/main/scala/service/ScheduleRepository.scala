@@ -10,6 +10,7 @@ import service.dao.mongo.{EmptyCabinetsDAOImpl, UserDAOImpl}
 import service.dao.{EmptyCabinetsDAO, UserDAO}
 import utils.Utils
 
+import scala.collection.immutable.ListMap
 import scala.concurrent.Future
 
 object ScheduleRepository {
@@ -39,7 +40,9 @@ class ScheduleRepository private(system: ActorSystem,
   private val emptyCabinetsDAO: EmptyCabinetsDAO = new EmptyCabinetsDAOImpl(mongoDatabase)
 
   override def getEmptyCabinets(day: String): Future[Option[EmptyCabinets]] = {
-    emptyCabinetsDAO.get(day).map(_.orElse(Some(EmptyCabinets(day, Map()))))
+    emptyCabinetsDAO.get(day)
+      .map(_.map(emptyCabinet => EmptyCabinets(emptyCabinet.day, ListMap(emptyCabinet.timetable.toSeq.sortBy(_._1.toInt): _*))))
+      .map(_.orElse(Some(EmptyCabinets(day, Map()))))
   }
 
   override def deleteAllEmptyCabinets(): Future[Response] = {
