@@ -37,8 +37,8 @@ object Boot extends App with ScheduleRoutes {
 
   val mongoUri = s"$mongoPrefix://$user:$password@$mongoHost/$database"
   val driver = MongoDriver()
-  val parsedURI = MongoConnection.parseURI(mongoUri)
-  val connection = parsedURI.flatMap(driver.connection(_, strictUri = true))
+//  val parsedURI = MongoConnection.parseURI(mongoUri)
+  val connection = driver.connection(mongoUri)
   val futureConnection = Future.fromTry(connection)
 
   val mongoDatabaseFuture: Future[DefaultDB] = futureConnection.flatMap(_.database(s"$database"))
