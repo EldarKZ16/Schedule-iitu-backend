@@ -10,9 +10,8 @@ import routing.ScheduleRoutes
 import service.actors.{EmptyCabinetUpdater, Scheduler}
 import service.{Repository, ScheduleRepository}
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.Try
 
 object Boot extends App with ScheduleRoutes {
@@ -22,6 +21,7 @@ object Boot extends App with ScheduleRoutes {
 
   implicit val system: ActorSystem = ActorSystem()
   implicit val materializer: ActorMaterializer = ActorMaterializer()
+  implicit val executionContext: ExecutionContext = ExecutionContext.global
 
   val host = config.getString("api.host")
   val port = config.getInt("api.port")

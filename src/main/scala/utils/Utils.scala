@@ -12,6 +12,8 @@ object Utils {
   final val SCHEDULE_REST_TIMETABLE_ROOM_URL: String = config.getString("schedule.room-url")
   final val EMPTY_CABINET_COLLECTION: String = config.getString("mongo.collection.cabinet")
   final val USER_COLLECTION: String = config.getString("mongo.collection.user")
+  final val ACCOUNT_COLLECTION: String = config.getString("mongo.collection.account")
+  final val TOKEN_COLLECTION: String = config.getString("mongo.collection.token")
   final val TEST_BUNDLE_ID = config.getString("schedule.test-room-id")
 
   final val DAYS: Seq[String] = for (day <- 1 to 6) yield day.toString

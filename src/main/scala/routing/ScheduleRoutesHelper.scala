@@ -1,12 +1,15 @@
 package routing
 
-import entities.domain.{EmptyCabinets, User}
+import entities.auth.{AuthContext, AuthCredentials, OAuthToken}
+import entities.domain.{Account, EmptyCabinets, User}
 import entities.http.Response
 import service.Repository
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 trait ScheduleRoutesHelper {
+
+  implicit def executionContext: ExecutionContext
 
   def repository: Repository
 
@@ -29,5 +32,8 @@ trait ScheduleRoutesHelper {
   def getUser(userId: Int): Future[Option[User]] = {
     repository.getUser(userId)
   }
+
+  def addAccount(account: Account): Future[Response] = repository.addAccount(account)
+  def login(credentials: AuthCredentials): Future[Either[Response, OAuthToken]] = repository.login(credentials)
 
 }
