@@ -75,7 +75,12 @@ class ScheduleRepository private(system: ActorSystem,
 
   override def addAccount(account: Account): Future[Response] = {
     log.info(s"Received add new account request for id: ${account.id}")
-    accountDAO.add(account.copy(password = account.password.bcrypt)).recover {
+    val result = for {
+      res1 <- accountDAO.add(account.copy(password = account.password.bcrypt))
+      res2 <- authContextDAO.update(AuthContext(account.id)).map(_ => Response()) if res1.status == 200
+    } yield res2
+
+    result.recover {
       case e =>
         log.error(s"Couldn't add new account, exception: ${e.getLocalizedMessage}")
         Response(message = e.getLocalizedMessage)
@@ -90,7 +95,7 @@ class ScheduleRepository private(system: ActorSystem,
 
     retrievedCtx match {
       case Some(ctx) if ctx.attempts == 0 && ctx.loggedInAt.plusMinutes(30).isAfterNow =>
-        Future.successful(Left(Response(400, "You've made too many attempts, try to authenticate after 30 minutes")))
+        Future.successful(Left(Response(500, "You've made too many attempts, try to authenticate after 30 minutes")))
       case Some(ctx) =>
         val retrievedUser = Await.result(accountDAO.get(credentials.accountId), 20.seconds)
         retrievedUser match {
