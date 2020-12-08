@@ -29,12 +29,13 @@ object Boot extends App with ScheduleRoutes {
   val timeout = Timeout.durationToTimeout(config.getInt("api.request-timeout").seconds)
 
   // MongoDB configuration
+  val mongoPrefix = config.getString("mongo.prefix")
   val mongoHost = config.getString("mongo.host")
   val database = config.getString("mongo.database")
   val user = config.getString("mongo.user")
   val password = config.getString("mongo.password")
 
-  val mongoUri = s"mongodb://$user:$password@$mongoHost/$database"
+  val mongoUri = s"$mongoPrefix://$user:$password@$mongoHost/$database"
   val driver = MongoDriver()
   val parsedURI = MongoConnection.parseURI(mongoUri)
   val connection = parsedURI.flatMap(driver.connection(_, strictUri = true))
