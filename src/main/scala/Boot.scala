@@ -5,7 +5,7 @@ import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import com.typesafe.config.{Config, ConfigFactory}
 import org.slf4j.{Logger, LoggerFactory}
-import reactivemongo.api.{DefaultDB, MongoConnection, MongoDriver}
+import reactivemongo.api.{AsyncDriver, DefaultDB, MongoConnection, MongoDriver}
 import routing.ScheduleRoutes
 import service.actors.{EmptyCabinetUpdater, Scheduler}
 import service.{Repository, ScheduleRepository}
@@ -36,12 +36,18 @@ object Boot extends App with ScheduleRoutes {
   val password = config.getString("mongo.password")
 
   val mongoUri = s"$mongoPrefix://$user:$password@$mongoHost/$database"
-  val driver = MongoDriver()
-//  val parsedURI = MongoConnection.parseURI(mongoUri)
-  val connection = driver.connection(mongoUri)
-  val futureConnection = Future.fromTry(connection)
+  val driver = new AsyncDriver()
+//  val connection = driver.connect(mongoUri)
+//  val futureConnection = Future.fromTry(connection)
 
-  val mongoDatabaseFuture: Future[DefaultDB] = futureConnection.flatMap(_.database(s"$database"))
+  val mongoDatabaseFuture = for {
+    uri <- MongoConnection.fromString(mongoUri)
+    con <- driver.connect(uri)
+    dn <- Future(uri.db.get)
+    db <- con.database(dn)
+  } yield db
+
+//  val mongoDatabaseFuture: Future[DefaultDB] = futureConnection.flatMap(_.database(s"$database"))
   val mongoDatabase: DefaultDB = Await.result(mongoDatabaseFuture, 10.seconds)
 
   log.info("Start schedulers...")
