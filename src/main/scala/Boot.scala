@@ -41,10 +41,8 @@ object Boot extends App with ScheduleRoutes {
 //  val futureConnection = Future.fromTry(connection)
 
   val mongoDatabaseFuture = for {
-    uri <- MongoConnection.fromString(mongoUri)
-    con <- driver.connect(uri)
-    dn <- Future(uri.db.get)
-    db <- con.database(dn)
+    con <- driver.connect(mongoUri)
+    db <- con.database(database)
   } yield db
 
 //  val mongoDatabaseFuture: Future[DefaultDB] = futureConnection.flatMap(_.database(s"$database"))
