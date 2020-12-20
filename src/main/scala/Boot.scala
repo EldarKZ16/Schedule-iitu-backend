@@ -5,14 +5,13 @@ import akka.stream.ActorMaterializer
 import akka.util.Timeout
 import com.typesafe.config.{Config, ConfigFactory}
 import org.slf4j.{Logger, LoggerFactory}
-import reactivemongo.api.{DefaultDB, MongoConnection, MongoDriver}
+import reactivemongo.api.{AsyncDriver, DefaultDB}
 import routing.ScheduleRoutes
 import service.actors.{EmptyCabinetUpdater, Scheduler}
 import service.{Repository, ScheduleRepository}
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{Await, ExecutionContext}
 import scala.util.Try
 
 object Boot extends App with ScheduleRoutes {
@@ -22,6 +21,7 @@ object Boot extends App with ScheduleRoutes {
 
   implicit val system: ActorSystem = ActorSystem()
   implicit val materializer: ActorMaterializer = ActorMaterializer()
+  implicit val executionContext: ExecutionContext = ExecutionContext.global
 
   val host = config.getString("api.host")
   val port = config.getInt("api.port")
@@ -29,18 +29,23 @@ object Boot extends App with ScheduleRoutes {
   val timeout = Timeout.durationToTimeout(config.getInt("api.request-timeout").seconds)
 
   // MongoDB configuration
+  val mongoPrefix = config.getString("mongo.prefix")
   val mongoHost = config.getString("mongo.host")
   val database = config.getString("mongo.database")
   val user = config.getString("mongo.user")
   val password = config.getString("mongo.password")
 
-  val mongoUri = s"mongodb://$user:$password@$mongoHost/$database"
-  val driver = MongoDriver()
-  val parsedURI = MongoConnection.parseURI(mongoUri)
-  val connection = parsedURI.flatMap(driver.connection(_, strictUri = true))
-  val futureConnection = Future.fromTry(connection)
+  val mongoUri = s"$mongoPrefix://$user:$password@$mongoHost/$database"
+  val driver = new AsyncDriver()
+  //  val connection = driver.connect(mongoUri)
+  //  val futureConnection = Future.fromTry(connection)
 
-  val mongoDatabaseFuture: Future[DefaultDB] = futureConnection.flatMap(_.database(s"$database"))
+  val mongoDatabaseFuture = for {
+    con <- driver.connect(mongoUri)
+    db <- con.database(database)
+  } yield db
+
+  //  val mongoDatabaseFuture: Future[DefaultDB] = futureConnection.flatMap(_.database(s"$database"))
   val mongoDatabase: DefaultDB = Await.result(mongoDatabaseFuture, 10.seconds)
 
   log.info("Start schedulers...")
@@ -66,4 +71,3 @@ object Boot extends App with ScheduleRoutes {
   log.info(s"Schedule server API server running at $host:$port")
   Await.result(system.whenTerminated, Duration.Inf)
 }
-
