@@ -21,6 +21,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka"      %% "akka-stream"                       % akkaVersion,
   "com.typesafe.akka"      %% "akka-slf4j"                        % akkaVersion,
   "org.reactivemongo"      %% "reactivemongo"                     % mongoVersion,
+  "org.reactivemongo"      %% "reactivemongo-bson-macros"         % mongoVersion,
   "org.json4s"             %% "json4s-native"                     % json4sVersion,
   "org.json4s"             %% "json4s-jackson"                    % json4sVersion,
   "ch.qos.logback"         %  "logback-classic"                   % logbackVersion,
